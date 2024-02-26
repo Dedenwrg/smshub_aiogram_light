@@ -1,4 +1,3 @@
-Berikut adalah daftar nama negara beserta id-nya dalam format tabel untuk GitHub:
 
 | Country            | ID  |
 |--------------------|-----|
