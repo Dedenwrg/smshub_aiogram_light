@@ -22,6 +22,7 @@ load_dotenv(dotenv_path)
 
 # Splitting multiple chat IDs from the environment variable
 chat_ids = os.getenv('MY_CHAT_ID').split(',')
+admin_chat_id = os.getenv('ADMIN_CHAT_ID')
 
 async def check_user_id(message: aiogram.types.Message):
     """
@@ -29,11 +30,42 @@ async def check_user_id(message: aiogram.types.Message):
     :param message:
     :return:
     """
+    user_username = message.from_user.username
     if str(message.from_user.id) not in chat_ids:
-        await message.answer('You are not allowed to use this bot')
+        await message.answer(f'You ({user_username}) are not allowed to use this bot')
         return False
     return True
 
+async def is_admin(message: types.Message):
+    """
+    Check if the user is an admin.
+    """
+    return str(message.from_user.id) == admin_chat_id
+
+# Command handler for /add user
+@dp.message_handler(commands=['add'])
+async def add_user_command(message: types.Message):
+    """
+    Add user command handler.
+    Adds the username provided to the allowed list.
+
+    :param message: The received message.
+    """
+    if not await is_admin(message):
+        return
+    
+    # Check if the command has the correct format
+    if len(message.text.split()) != 3 or message.text.split()[1] != "user":
+        await message.answer("Invalid command format. Use /add user <username>")
+        return
+    
+    # Extract the username from the command
+    username = message.text.split()[2]
+    
+    # Add the username to the list of allowed usernames
+    chat_ids.append(username)
+    
+    await message.answer(f"User {username} has been added to the allowed list.")
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: aiogram.types.Message):
@@ -48,7 +80,6 @@ async def process_start_command(message: aiogram.types.Message):
     await message.answer('🤖', reply_markup=main_keyboard_toggle)
     logging.info('Bot started')
 
-
 @dp.message_handler(Text(equals=['💵 Balance']))
 async def process_balance_command(message: aiogram.types.Message):
     """
@@ -61,7 +92,6 @@ async def process_balance_command(message: aiogram.types.Message):
         return
     await message.answer(await hub.get_balance())
     logger.info('Balance sent')
-
 
 @dp.message_handler(Text(equals=['📞 Buy number']))
 async def process_buy_number(message: aiogram.types.Message):
@@ -76,7 +106,6 @@ async def process_buy_number(message: aiogram.types.Message):
     services_keyboard = generate_services_keyboard()
     await message.answer('Choose service:', reply_markup=services_keyboard)
     logger.info('Num menu requested')
-
 
 @dp.callback_query_handler(lambda c: c.data in SERVICES.values())
 async def process_service_choice(callback_query: aiogram.types.CallbackQuery):
@@ -127,7 +156,6 @@ async def process_service_choice(callback_query: aiogram.types.CallbackQuery):
     )
     logger.info(f'Code {code} received')
 
-
 @dp.callback_query_handler(lambda c: c.data.startswith('cancel_'))
 async def process_cancel_number(callback_query: aiogram.types.CallbackQuery):
     """
@@ -145,7 +173,6 @@ async def process_cancel_number(callback_query: aiogram.types.CallbackQuery):
         message_id=callback_query.message.message_id,
         reply_markup=None,
     )
-
 
 @dp.callback_query_handler(lambda c: c.data.startswith('get_'))
 async def process_get_new_code(callback_query: aiogram.types.CallbackQuery):
@@ -177,7 +204,6 @@ async def process_get_new_code(callback_query: aiogram.types.CallbackQuery):
 
     logger.info(f'New code {code} received')
 
-
 @dp.callback_query_handler(lambda c: c.data.startswith('close_'))
 async def process_close_after_sms(callback_query: aiogram.types.CallbackQuery):
     """
@@ -195,7 +221,6 @@ async def process_close_after_sms(callback_query: aiogram.types.CallbackQuery):
         message_id=callback_query.message.message_id,
         reply_markup=None,
     )
-
 
 @dp.callback_query_handler(lambda c: c.data.startswith('page:'))
 async def process_callback_page_btn(callback_query: types.CallbackQuery):
@@ -215,3 +240,6 @@ async def process_callback_page_btn(callback_query: types.CallbackQuery):
 
     # Acknowledge the callback query
     await callback_query.answer()
+
+if __name__ == "__main__":
+    aiogram.executor.start_polling(dp, skip_updates=True)
