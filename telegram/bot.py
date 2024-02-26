@@ -22,11 +22,9 @@ load_dotenv(dotenv_path)
 
 admin_chat_id = os.getenv('ADMIN_CHAT_ID')
 
-# Splitting multiple chat IDs from the environment variable
 chat_ids = os.getenv('MY_CHAT_ID').split(',')
 admin_username = os.getenv('ADMIN_USERNAME')
 
-# Fungsi untuk memuat daftar username yang diizinkan dari file konfigurasi
 def load_allowed_usernames():
     try:
         with open("allowed_usernames.txt", "r") as file:
@@ -34,12 +32,10 @@ def load_allowed_usernames():
     except FileNotFoundError:
         return []
 
-# Fungsi untuk menyimpan daftar username yang diizinkan ke dalam file konfigurasi
 def save_allowed_usernames(allowed_usernames):
     with open("allowed_usernames.txt", "w") as file:
         file.write("\n".join(allowed_usernames))
 
-# Fungsi untuk membuat file allowed_usernames.txt jika belum ada
 def create_allowed_usernames_file():
     try:
         with open("allowed_usernames.txt", "x") as file:
@@ -47,10 +43,8 @@ def create_allowed_usernames_file():
     except FileExistsError:
         pass
 
-# Memuat daftar username yang diizinkan saat bot dimulai
 allowed_usernames = load_allowed_usernames()
 
-# Membuat file allowed_usernames.txt jika belum ada
 create_allowed_usernames_file()
 
 async def check_user_id(message: aiogram.types.Message):
@@ -71,7 +65,6 @@ async def is_admin(message: types.Message):
     """
     return str(message.from_user.id) == admin_chat_id
 
-# Command handler for /add user
 @dp.message_handler(commands=['add'])
 async def add_user_command(message: types.Message):
     """
@@ -83,23 +76,18 @@ async def add_user_command(message: types.Message):
     if not await is_admin(message):
         return
     
-    # Check if the command has the correct format
     if len(message.text.split()) != 3 or message.text.split()[1] != "user":
         await message.answer("Invalid command format. Use /add user <username>")
         return
     
-    # Extract the username from the command
     username = message.text.split()[2]
     
-    # Add the username to the list of allowed usernames
     allowed_usernames.append(username)
     
-    # Save the updated list of allowed usernames to the configuration file
     save_allowed_usernames(allowed_usernames)
     
     await message.answer(f"User {username} has been added to the allowed list and saved to file.")
 
-# Command handler for /start
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: aiogram.types.Message):
     """
@@ -113,7 +101,6 @@ async def process_start_command(message: aiogram.types.Message):
     await message.answer('🤖', reply_markup=main_keyboard_toggle)
     logging.info('Bot started')
 
-# Command handler for /balance
 @dp.message_handler(Text(equals=['💵 Balance']))
 async def process_balance_command(message: aiogram.types.Message):
     """
@@ -127,7 +114,6 @@ async def process_balance_command(message: aiogram.types.Message):
     await message.answer(await hub.get_balance())
     logger.info('Balance sent')
 
-# Command handler for /buy
 @dp.message_handler(Text(equals=['📞 Buy number']))
 async def process_buy_number(message: aiogram.types.Message):
     """
@@ -142,7 +128,6 @@ async def process_buy_number(message: aiogram.types.Message):
     await message.answer('Choose service:', reply_markup=services_keyboard)
     logger.info('Num menu requested')
 
-# Callback handler for selecting a service
 @dp.callback_query_handler(lambda c: c.data in SERVICES.values())
 async def process_service_choice(callback_query: aiogram.types.CallbackQuery):
     """
@@ -192,7 +177,6 @@ async def process_service_choice(callback_query: aiogram.types.CallbackQuery):
     )
     logger.info(f'Code {code} received')
 
-# Callback handler for canceling a number
 @dp.callback_query_handler(lambda c: c.data.startswith('cancel_'))
 async def process_cancel_number(callback_query: aiogram.types.CallbackQuery):
     """
@@ -211,7 +195,6 @@ async def process_cancel_number(callback_query: aiogram.types.CallbackQuery):
         reply_markup=None,
     )
 
-# Callback handler for getting a new code
 @dp.callback_query_handler(lambda c: c.data.startswith('get_'))
 async def process_get_new_code(callback_query: aiogram.types.CallbackQuery):
     """
@@ -242,7 +225,6 @@ async def process_get_new_code(callback_query: aiogram.types.CallbackQuery):
 
     logger.info(f'New code {code} received')
 
-# Callback handler for closing a number after SMS
 @dp.callback_query_handler(lambda c: c.data.startswith('close_'))
 async def process_close_after_sms(callback_query: aiogram.types.CallbackQuery):
     """
@@ -261,7 +243,6 @@ async def process_close_after_sms(callback_query: aiogram.types.CallbackQuery):
         reply_markup=None,
     )
 
-# Callback handler for page navigation buttons
 @dp.callback_query_handler(lambda c: c.data.startswith('page:'))
 async def process_callback_page_btn(callback_query: types.CallbackQuery):
     """
